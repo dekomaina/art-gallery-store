@@ -1,459 +1,215 @@
-/* Deko Arts Gallery — storefront + admin UI. All data goes through /api (server.js). No secrets here. */
-(function () {
-  'use strict';
-  const $ = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const money = (n) => 'KES ' + Number(n || 0).toLocaleString('en-KE');
-  const view = $('#view');
-  const rid = () => Math.random().toString(36).slice(2, 7);
+/* Deko Arts Gallery - storefront + admin. All data goes through /api (server.js). No secrets here. */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const LS = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v } catch (e) { return d } };
+const SV = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch (e) { } };
+const kes = n => 'KES ' + Math.round(+n || 0).toLocaleString();
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PAL = [['#c9a24b', '#2a1a0f', '#e8d9b0', '#7a2e1d'], ['#1d3b4f', '#e9c46a', '#f4a261', '#0b1c26'], ['#3a0ca3', '#f72585', '#4cc9f0', '#10002b'], ['#2d6a4f', '#d8f3dc', '#b7e4c7', '#081c15'], ['#9d0208', '#ffba08', '#370617', '#faa307'], ['#264653', '#e76f51', '#f4f1de', '#2a9d8f']];
+const SAMPLE = [['Golden Savannah', 'Original painting', 45000, 0], ['Echoes of Nairobi', 'Abstract', 32000, 2], ['Mama Africa', 'African contemporary', 58000, 4], ['Ocean Memory', 'Canvas print', 12000, 1], ['Midnight Bloom', 'Digital artwork', 6500, 2], ['Elder’s Gaze', 'Portrait', 38000, 5], ['Rift Valley Dawn', 'Wall art', 15000, 3], ['Kente Rhythm', 'African contemporary', 27000, 4]];
 
-  function load(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } }
-  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } }
-  function getSid() {
-    let s = null;
-    try { s = localStorage.getItem('dag_sid'); } catch { /* ignore */ }
-    if (!s) { s = 'S' + rid() + Date.now().toString(36); try { localStorage.setItem('dag_sid', s); } catch { /* ignore */ } }
-    return s;
-  }
+let products = [], cart = LS('dk_cart', []), wish = LS('dk_wish', []), cid = LS('dk_cid', null), disc = 0, wlOnly = false, loaded = false, loadErr = '';
+let cartMeta = LS('dk_cartmeta', {});
+const rid = () => Math.random().toString(36).slice(2, 8);
 
-  const S = { products: [], cart: load('dag_cart', []), sid: getSid(), coupon: '', adm: { tab: 'overview', data: null, orderEdits: {}, bookEdits: {}, edit: null } };
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2800) }
 
-  const SAMPLES = [
-    ['Golden Hour over Mara', 'Landscape', 'Acrylic on canvas', '60 x 90 cm', 45000, 2, 'Warm savanna light across the Mara plains.', 'mara'],
-    ['Portrait of Mama Wanjiru', 'Portrait', 'Oil on canvas', '50 x 70 cm', 62000, 1, 'A tender portrait in rich earth tones.', 'wanjiru'],
-    ['Nairobi Rhythm', 'Abstract', 'Mixed media', '80 x 80 cm', 38000, 3, 'City energy in layered colour and texture.', 'nairobi'],
-    ['Maasai Morning', 'Cultural', 'Acrylic on canvas', '70 x 100 cm', 55000, 2, 'Morning ritual at the edge of the village.', 'maasai'],
-    ['Lamu Dhow', 'Seascape', 'Watercolour', '40 x 60 cm', 18500, 4, 'Sails against a Lamu dawn.', 'lamu'],
-    ['Baobab Stillness', 'Landscape', 'Oil on board', '45 x 60 cm', 27000, 3, 'The old baobab at dusk.', 'baobab'],
-    ['Woman in Kitenge', 'Portrait', 'Acrylic on canvas', '60 x 80 cm', 48000, 1, 'Pattern and pride in vivid colour.', 'kitenge'],
-    ['Limited Print: Savanna Wind', 'Prints', 'Giclee print', '50 x 70 cm', 9500, 20, 'Signed limited edition print.', 'savanna']
-  ];
+/* ---------- artwork ---------- */
+function art(p) {
+  if (p.img) return `<img src="${esc(p.img)}" alt="${esc(p.name)}">`;
+  const pid = String(p.id).replace(/\W/g, '');
+  let s = (p.seed || 3) * 9301, r = () => (s = (s * 49297 + 233280) % 233280) / 233280, c = PAL[(p.pal || 0) % PAL.length];
+  let o = `<svg viewBox="0 0 300 380" role="img" aria-label="${esc(p.name)}"><defs><linearGradient id="g${pid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[3]}"/><stop offset="1" stop-color="${c[0]}"/></linearGradient></defs><rect width="300" height="380" fill="url(#g${pid})"/>`;
+  for (let i = 0; i < 9; i++) { const col = c[i % 4]; o += i % 3 ? `<circle cx="${r() * 300}" cy="${r() * 380}" r="${20 + r() * 80}" fill="${col}" opacity="${.25 + r() * .5}"/>` : `<path d="M${r() * 300} ${r() * 380} Q${r() * 300} ${r() * 380} ${r() * 300} ${r() * 380} T${r() * 300} ${r() * 380}" stroke="${col}" stroke-width="${6 + r() * 14}" fill="none" opacity=".8" stroke-linecap="round"/>` }
+  return o + '</svg>';
+}
+const sold = p => p.stock < 1 || p.status === 'sold';
+function card(p) {
+  const w = wish.includes(p.id);
+  return `<div class="card">${sold(p) ? '<span class="tag">Sold</span>' : ''}<button class="heart ${w ? 'on' : ''}" onclick="fav('${esc(p.id)}')" aria-label="Wishlist">♥</button>${art(p)}<div class="b"><h3>${esc(p.name)}</h3><div class="mu">${esc(p.cat)}</div>${p.desc ? `<div class="mu" style="margin-top:.3rem">${esc(String(p.desc).slice(0, 90))}</div>` : ''}<div style="display:flex;justify-content:space-between;align-items:center;margin-top:.6rem"><span class="price">${kes(p.price)}</span><button class="btn sm" ${sold(p) ? 'disabled' : ''} onclick="add('${esc(p.id)}')">Add to cart</button></div></div></div>`;
+}
+const live = () => products.filter(p => p.status !== 'draft');
+function fav(id) { wish = wish.includes(id) ? wish.filter(x => x != id) : [...wish, id]; SV('dk_wish', wish); shop(); home() }
+function emptyMsg() { return loadErr ? `<div class="empty err">${esc(loadErr)}</div>` : loaded ? '<div class="empty">New artwork is coming soon. Check back shortly or <a href="#book" style="color:var(--gold)">commission a piece</a>.</div>' : '<div class="empty">Loading artwork…</div>' }
+function home() {
+  let f = live().filter(p => p.featured).slice(0, 4); if (!f.length) f = live().slice(0, 4);
+  $('#featured').innerHTML = f.map(card).join('') || emptyMsg();
+  $('#heroArt').innerHTML = f[0] ? art(f[0]) : '';
+}
+function shop() {
+  let l = live(), q = $('#q').value.toLowerCase(), c = $('#cat').value, s = $('#sort').value;
+  if (q) l = l.filter(p => p.name.toLowerCase().includes(q)); if (c) l = l.filter(p => p.cat == c); if (wlOnly) l = l.filter(p => wish.includes(p.id));
+  if (s) l = [...l].sort((a, b) => s == 'a' ? a.price - b.price : b.price - a.price);
+  $('#shopGrid').innerHTML = l.map(card).join('') || emptyMsg();
+}
+async function loadProducts() {
+  try { products = await API.products(); loadErr = '' } catch (e) { loadErr = 'The shop could not load right now. Please refresh in a moment.' }
+  loaded = true;
+  cart = cart.filter(i => products.find(p => p.id == i.id)); SV('dk_cart', cart);
+  home(); shop(); upCart();
+}
 
-  /* ---------- helpers ---------- */
-  function toast(msg, err) {
-    const t = document.createElement('div');
-    t.className = 'toast' + (err ? ' err' : '');
-    t.textContent = msg;
-    $('#toast').appendChild(t);
-    setTimeout(() => t.remove(), 3500);
-  }
-  const prod = (id) => S.products.find((p) => p.id === id);
-  const avail = (p) => p && p.status === 'published' && (p.stock || 0) > 0;
-  function totals() {
-    const lines = S.cart.map((i) => ({ p: prod(i.id), q: i.q })).filter((l) => l.p);
-    const sub = lines.reduce((t, l) => t + l.p.price * l.q, 0);
-    const ship = sub >= 20000 ? 0 : 500;
-    const d = S.coupon.toUpperCase() === 'DEKO10' ? 0.1 : 0;
-    return { lines, sub, ship: sub ? ship : 0, disc: Math.round(sub * d), total: sub ? Math.round(sub * (1 - d) + ship) : 0 };
-  }
-  function img(p) { return p.image ? esc(p.image) : 'https://picsum.photos/seed/' + encodeURIComponent(p.id) + '/600/750'; }
+/* ---------- cart (saved in the browser, logged to the server for analytics) ---------- */
+const find = id => products.find(x => x.id == id);
+const sub = () => cart.reduce((s, i) => { const p = find(i.id); return s + (p ? p.price * i.q : 0) }, 0), ship = () => !cart.length || sub() >= 20000 ? 0 : 500, cartTotal = () => Math.round(sub() * (1 - disc) + ship());
+function trackCart(status) {
+  if (!cart.length && !cid) return;
+  if (!cid) { cid = 'C' + Date.now().toString(36) + rid(); cartMeta = { start: Date.now(), adds: 0 }; SV('dk_cid', cid) }
+  const items = cart.map(i => { const p = find(i.id) || {}; return { id: i.id, q: i.q, name: p.name || i.id, price: p.price || 0 } });
+  cartMeta.status = status || cartMeta.status || 'open'; SV('dk_cartmeta', cartMeta);
+  API.log('carts', cid, { id: cid, start: cartMeta.start, upd: Date.now(), adds: cartMeta.adds || 0, items, value: cartTotal(), status: cartMeta.status });
+}
+function evt(type, p, q) { API.log('cart_events', 'E' + Date.now().toString(36) + rid(), { t: Date.now(), cart: cid, type, pid: p.id, name: p.name, price: p.price, q: q || 1 }) }
+function add(id) {
+  const p = find(id); if (!p || sold(p)) return toast('Sorry, this piece is sold');
+  const i = cart.find(x => x.id == id);
+  if (i) { if (i.q >= p.stock) return toast('Only ' + p.stock + ' in stock'); i.q++ } else cart.push({ id, q: 1 });
+  if (!cid) { cid = 'C' + Date.now().toString(36) + rid(); cartMeta = { start: Date.now(), adds: 0 }; SV('dk_cid', cid) }
+  cartMeta.adds = (cartMeta.adds || 0) + 1; cartMeta.status = 'open';
+  SV('dk_cart', cart); trackCart('open'); evt('add', p); upCart(); toast(p.name + ' added to cart');
+}
+function qty(id, d) {
+  const i = cart.find(x => x.id == id), p = find(id); if (!i || !p) return; i.q += d; if (i.q > p.stock) i.q = p.stock;
+  if (i.q < 1) { cart = cart.filter(x => x.id != id); evt('remove', p) }
+  SV('dk_cart', cart); trackCart(); upCart();
+}
+function applyDc() { if ($('#dc').value.trim().toUpperCase() == 'DEKO10') { disc = .1; toast('10% discount applied') } else toast('Invalid code'); upCart() }
+function upCart() {
+  $('#cc').textContent = cart.reduce((s, i) => s + i.q, 0);
+  $('#items').innerHTML = cart.map(i => { const p = find(i.id); if (!p) return ''; return `<div class="it"><div class="th">${art(p)}</div><div style="flex:1"><b>${esc(p.name)}</b><div class="mu">${kes(p.price)}</div></div><button class="btn o sm" onclick="qty('${esc(i.id)}',-1)">−</button>${i.q}<button class="btn o sm" onclick="qty('${esc(i.id)}',1)">+</button></div>` }).join('') || '<p class="mu">Your cart is empty.</p>';
+  $('#sum').innerHTML = cart.length ? `<p class="mu">Subtotal ${kes(sub())}<br>Shipping ${ship() ? kes(ship()) : 'Free'}${disc ? '<br>Discount −' + disc * 100 + '%' : ''}</p><div style="display:flex;gap:.5rem"><input id="dc" placeholder="Code (DEKO10)"><button class="btn o sm" onclick="applyDc()">Apply</button></div><h3 style="margin-top:1rem">${kes(cartTotal())}</h3><button class="btn" style="width:100%" onclick="startCk()">Checkout</button>` : '';
+}
+const openCart = () => { $('#drawer').classList.add('on'); upCart() }, closeCart = () => $('#drawer').classList.remove('on');
+function startCk() { trackCart('checkout'); $('#ckTot').textContent = 'Total: ' + kes(cartTotal()); $('#ck').classList.add('on') }
 
-  /* ---------- cart ---------- */
-  function syncCart(type, p, status) {
-    save('dag_cart', S.cart);
-    $('#cartN').textContent = S.cart.reduce((t, i) => t + i.q, 0);
-    const t = totals();
-    API.log('carts', S.sid, { sid: S.sid, status: status || 'open', updated: Date.now(), total: t.total, items: t.lines.map((l) => ({ id: l.p.id, name: l.p.name, price: l.p.price, q: l.q })) });
-    if (type) API.log('cart_events', S.sid + '-' + Date.now().toString(36) + rid(), { sid: S.sid, type, productId: p ? p.id : '', name: p ? p.name : '', price: p ? p.price : 0, at: Date.now() });
-    drawCart();
+/* ---------- payments ---------- */
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function finishPaid(o) {
+  cartMeta.status = 'paid'; trackCart('paid'); cart = []; cid = null; cartMeta = {}; disc = 0; SV('dk_cart', cart); SV('dk_cid', null); SV('dk_cartmeta', cartMeta);
+  $('#ck').classList.remove('on'); closeCart(); upCart(); receipt(o); loadProducts();
+}
+$('#ckForm').onsubmit = async e => {
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)), b = $('#payBtn');
+  if (!cart.length) return toast('Your cart is empty');
+  b.disabled = true;
+  try {
+    const r = await API.checkout({ customer: { name: f.name, phone: f.phone, email: f.email, addr: f.addr }, method: f.pay, items: cart.map(i => ({ id: i.id, q: i.q })), code: disc ? 'DEKO10' : '' });
+    if (f.pay == 'paypal') { b.textContent = 'Opening PayPal…'; location.href = r.approveUrl; return }
+    b.textContent = 'Check your phone for the M-Pesa prompt…';
+    let o = null;
+    for (let n = 0; n < 40; n++) { await wait(3000); try { o = await API.order(r.orderId) } catch (x) { continue } if (o.status != 'Pending') break }
+    if (o && o.status == 'Paid') finishPaid(o);
+    else toast(o && o.status == 'Failed' ? 'Payment not completed: ' + (o.failReason || 'cancelled') : 'We did not receive payment confirmation. If money was deducted, contact us with ref ' + r.orderId);
+  } catch (err) { toast(err.message) }
+  b.disabled = false; b.textContent = 'Pay now';
+};
+function receipt(o) {
+  $('#rcBox').innerHTML = `<h3>Order confirmed ✓</h3><p class="mu">Order ${esc(o.id)}<br>${o.method == 'mpesa' ? 'M-Pesa' : 'PayPal'} ref: ${esc(o.ref || '')}<br>${new Date(o.date).toLocaleString()}</p>${(o.items || []).map(i => `<div style="display:flex;justify-content:space-between"><span>${esc(i.name)} × ${i.q}</span><span>${kes(i.price * i.q)}</span></div>`).join('')}<h3 style="margin-top:1rem">Total ${kes(o.total)}</h3><p class="mu">Keep your order number to follow up with us.</p><button class="btn" onclick="print()">Print receipt</button> <button class="btn o" onclick="rc.classList.remove('on')">Close</button>`;
+  $('#rc').classList.add('on');
+}
+async function paypalReturn() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('paypal_cancel')) { toast('PayPal payment cancelled'); history.replaceState(null, '', location.pathname + location.hash) }
+  if (q.get('paypal_return')) {
+    const order = q.get('order'), token = q.get('token'); history.replaceState(null, '', location.pathname + location.hash);
+    try { const o = await API.paypalCapture(order, token); finishPaid(o) } catch (e) { toast(e.message) }
   }
-  function addToCart(id, q = 1) {
-    const p = prod(id);
-    if (!avail(p)) return toast('Sorry, this artwork is no longer available', true);
-    const it = S.cart.find((i) => i.id === id);
-    const want = Math.min((it ? it.q : 0) + q, p.stock);
-    if (it) it.q = want; else S.cart.push({ id, q: want });
-    syncCart('add_to_cart', p);
-    toast('Added to cart');
-  }
-  function setQty(id, q) {
-    const p = prod(id), it = S.cart.find((i) => i.id === id);
-    if (!it || !p) return;
-    if (q < 1) { S.cart = S.cart.filter((i) => i.id !== id); syncCart('remove_from_cart', p); return; }
-    it.q = Math.min(q, p.stock);
-    syncCart('update_qty', p);
-  }
-  function drawCart() {
-    const t = totals();
-    $('#dlines').innerHTML = t.lines.length ? t.lines.map((l) => `
-      <div class="line"><img src="${img(l.p)}" alt="">
-        <div class="t">${esc(l.p.name)}<div class="muted">${money(l.p.price)}</div>
-          <div class="qty" style="margin-top:6px"><button data-act="dec" data-id="${esc(l.p.id)}">−</button><span>${l.q}</span><button data-act="inc" data-id="${esc(l.p.id)}">+</button></div></div>
-        <button class="btn ghost sm" data-act="rm" data-id="${esc(l.p.id)}">Remove</button></div>`).join('')
-      : '<p class="muted" style="padding:20px 0">Your cart is empty.</p>';
-    $('#dfoot').innerHTML = t.lines.length ? `
-      <div class="sum"><span>Subtotal</span><span>${money(t.sub)}</span></div>
-      <div class="sum"><span>Delivery</span><span>${t.ship ? money(t.ship) : 'Free'}</span></div>
-      ${t.disc ? `<div class="sum"><span>Discount</span><span>− ${money(t.disc)}</span></div>` : ''}
-      <div class="sum total"><span>Total</span><span>${money(t.total)}</span></div>
-      <p class="muted" style="font-size:13px;margin:6px 0 12px">Free delivery on orders from KES 20,000.</p>
-      <a class="btn" style="display:block;text-align:center" href="#/checkout">Checkout</a>` : '';
-  }
-  function openDrawer() { drawCart(); $('#drawer').classList.add('open'); $('#shade').classList.add('on'); }
-  function closeDrawer() { $('#drawer').classList.remove('open'); $('#shade').classList.remove('on'); }
+}
 
-  /* ---------- views ---------- */
-  function shopView() {
-    const cats = [...new Set(S.products.map((p) => p.category).filter(Boolean))].sort();
-    view.innerHTML = `
-      <section class="hero"><h1>Original art from Kenya</h1>
-        <p>Paintings, portraits and limited prints from Deko Arts Gallery. Pay securely with M-Pesa or PayPal. Commissions open.</p>
-        <a class="btn" href="#/commission">Commission an artwork</a></section>
-      <div class="wrap">
-        <div class="tools"><input id="q" placeholder="Search artworks…" aria-label="Search">
-          <select id="cat"><option value="">All categories</option>${cats.map((c) => `<option>${esc(c)}</option>`).join('')}</select>
-          <select id="sort"><option value="new">Newest</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select></div>
-        <div class="grid" id="grid"></div></div>`;
-    const draw = () => {
-      const q = $('#q').value.trim().toLowerCase(), c = $('#cat').value, s = $('#sort').value;
-      let list = S.products.filter((p) => (!c || p.category === c) && (!q || (p.name + ' ' + (p.artist || '') + ' ' + (p.desc || '')).toLowerCase().includes(q)));
-      if (s === 'lo') list.sort((a, b) => a.price - b.price); else if (s === 'hi') list.sort((a, b) => b.price - a.price); else list.sort((a, b) => (b.created || 0) - (a.created || 0));
-      $('#grid').innerHTML = list.length ? list.map((p) => `
-        <a class="card" href="#/product/${encodeURIComponent(p.id)}"><div class="img"><img loading="lazy" src="${img(p)}" alt="${esc(p.name)}">${avail(p) ? '' : '<span class="badge">SOLD</span>'}</div>
-          <div class="info"><h3>${esc(p.name)}</h3><div class="muted">${esc(p.category || '')}${p.size ? ' · ' + esc(p.size) : ''}</div><div class="price">${money(p.price)}</div></div></a>`).join('')
-        : `<p class="muted">${S.products.length ? 'No artworks match your search.' : 'New artworks coming soon.'}</p>`;
+/* ---------- forms ---------- */
+$('#bkForm').onsubmit = async e => {
+  e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); f.files = e.target.elements.ref.files.length; delete f.ref;
+  try { const r = await API.booking(f); e.target.reset(); toast('Request sent. Your reference: ' + r.ref); $('#trOut').textContent = 'Your reference: ' + r.ref + ' (Pending)' } catch (err) { toast(err.message) }
+};
+$('#trForm').onsubmit = async e => {
+  e.preventDefault(); const ref = e.target.elements.ref.value.trim().toUpperCase(); if (!ref) return;
+  try { const b = await API.bookingStatus(ref); $('#trOut').textContent = `${b.ref}: ${b.service} — ${b.status}` } catch (err) { $('#trOut').textContent = 'Booking not found. Check the reference.' }
+};
+$('#ctForm').onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); API.log('service_requests', 'M' + Date.now().toString(36) + rid(), { ...f, t: Date.now() }); e.target.reset(); toast('Message sent. We will reply soon.') };
+$('#wa').href = 'https://wa.me/254743524067';
+const info = (a, c) => `<div class="box"><h3>${a}</h3><p class="mu">${c}</p></div>`;
+$('#motionCards').innerHTML = [['3D animation', 'Cinematic product and character animation.'], ['3D product visualization', 'Photoreal renders for brands.'], ['Motion graphics', 'Logo stings, explainers, social reels.'], ['2D animation & character design', 'Hand-crafted characters and stories.'], ['Branding & graphic design', 'Identity systems that feel premium.'], ['Video production', 'Shoot, edit, grade and deliver.'], ['Portfolio showcase', 'Painting-process films and project reels.']].map(x => info(esc(x[0]), x[1])).join('');
+$('#svcCards').innerHTML = [['Interior art consultation', 'Choose pieces that fit your space.'], ['Wall painting & murals', 'Large-scale murals for homes and offices.'], ['Home & office decoration', 'Curated decor and finishing.'], ['Wall art installation', 'Safe, professional hanging.'], ['Branding services', 'Logos, signage and collateral.'], ['On-site creative services', 'Live painting and installations.']].map(x => info(esc(x[0]), x[1])).join('');
+
+/* ---------- admin ---------- */
+const TABS = ['Overview', 'Products', 'Cart Analytics', 'Orders', 'Commissions', 'Messages'];
+let tab = 'Overview', D = { products: [], orders: [], bookings: [], carts: [], events: [] };
+const PAID = ['Paid', 'Processing', 'Shipped', 'Delivered'];
+async function adminLoad() { D = await API.admin.data() }
+async function adminShow() { $('#gate').style.display = 'none'; $('#panel').style.display = 'block'; await adminRender() }
+async function adminRender() {
+  try { await adminLoad() } catch (e) { if (e.status == 401) return adminOut('Session expired. Sign in again.'); toast(e.message) }
+  $('#side').innerHTML = TABS.map(t => `<button class="${t == tab ? 'on' : ''}" onclick="tab='${t}';adminRender()">${t}</button>`).join('') + '<button onclick="adminOut()">Sign out</button>';
+  ({ Overview: ov, Products: pr, 'Cart Analytics': ca, Orders: od, Commissions: bk, Messages: ms })[tab]($('#aMain'));
+}
+function adminOut(msg) { try { sessionStorage.removeItem('dag_admin') } catch (e) { } $('#panel').style.display = 'none'; $('#gate').style.display = 'block'; $('#pw').value = ''; $('#gErr').textContent = msg || ''; }
+$('#gForm').onsubmit = async e => {
+  e.preventDefault(); const pw = $('#pw').value; if (!pw) return; $('#gErr').textContent = '';
+  try { sessionStorage.setItem('dag_admin', pw); await API.admin.data(); await adminShow() } catch (err) { try { sessionStorage.removeItem('dag_admin') } catch (x) { } $('#gErr').textContent = err.status == 401 ? 'Wrong password' : err.message }
+};
+const tbl = (h, rows) => `<div class="tw"><table><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${h.length}" class="mu">No data yet.</td></tr>`}</table></div>`;
+const fmt = t => t ? new Date(t).toLocaleString() : '—';
+function ov(m) {
+  const paid = D.orders.filter(o => PAID.includes(o.status)), rev = paid.reduce((s, o) => s + o.total, 0), adds = D.events.filter(e => e.type == 'add').length;
+  const ab = D.carts.filter(c => c.status != 'paid' && (c.items || []).length), conv = D.carts.length ? Math.round(D.carts.filter(c => c.status == 'paid').length / D.carts.length * 100) : 0;
+  const days = [...Array(7)].map((_, i) => { const d = new Date(Date.now() - (6 - i) * 864e5).toDateString(); return [d.slice(0, 3), paid.filter(o => new Date(o.paidAt || o.date).toDateString() == d).reduce((s, o) => s + o.total, 0)] }), mx = Math.max(1, ...days.map(d => d[1]));
+  const byM = ['mpesa', 'paypal'].map(k => [k == 'mpesa' ? 'M-Pesa' : 'PayPal', paid.filter(o => o.method == k).length, kes(paid.filter(o => o.method == k).reduce((s, o) => s + o.total, 0))]);
+  m.innerHTML = `<div class="kpi"><div class="box"><span class="mu">Total sales</span><b>${kes(rev)}</b></div><div class="box"><span class="mu">Paid orders</span><b>${paid.length}</b></div><div class="box"><span class="mu">Added to carts</span><b>${adds}</b></div><div class="box"><span class="mu">Commissions</span><b>${D.bookings.length}</b></div><div class="box"><span class="mu">Abandoned carts</span><b>${ab.length}</b></div><div class="box"><span class="mu">Conversion</span><b>${conv}%</b></div></div><div class="box"><h3>Sales — last 7 days</h3><svg viewBox="0 0 350 140" width="100%">${days.map((d, i) => `<rect x="${i * 50 + 10}" y="${110 - d[1] / mx * 100}" width="30" height="${d[1] / mx * 100}" fill="var(--gold)" rx="3"/><text x="${i * 50 + 25}" y="130" text-anchor="middle" font-size="10" fill="var(--mu)">${d[0]}</text>`).join('')}</svg></div><br><div class="box"><h3>Sales by method</h3>${tbl(['Method', 'Orders', 'Revenue'], byM)}</div>`;
+}
+function thumb(p) { return `<div class="thumb">${art(p)}</div>` }
+function pr(m) {
+  m.innerHTML = `<div class="box"><h3 id="pfT">Add new painting</h3><form id="pf"><input type="hidden" name="id"><input name="name" placeholder="Painting name" required><select name="cat">${$$('#cat option').slice(1).map(o => `<option>${o.textContent}</option>`).join('')}</select><input name="price" type="number" min="1" placeholder="Price (KES)" required><input name="stock" type="number" min="0" placeholder="Stock" value="1"><select name="status"><option value="published">Published (visible in shop)</option><option value="draft">Draft (hidden)</option></select><label>Painting image (from your computer)</label><input type="file" name="img" accept="image/*"><label><input type="checkbox" name="feat" style="width:auto"> Feature on homepage</label><textarea name="desc" placeholder="Story / description"></textarea><div class="row"><button class="btn">Save painting</button><button type="button" class="btn o" onclick="pr($('#aMain'))">Clear</button></div></form></div><br><div class="row"><button class="btn o sm" onclick="seed()">Load sample artworks</button></div><br>` +
+    tbl(['', 'SKU', 'Name', 'Category', 'Price', 'Stock', 'Status', 'Actions'], D.products.map(p => [thumb(p), esc(p.sku || ''), esc(p.name), esc(p.cat), kes(p.price), p.stock, `<span class="st ${p.status == 'published' ? 'g' : ''}">${esc(p.status)}</span>${p.featured ? ' ★' : ''}`, `<button class="btn o sm" onclick="pEdit('${esc(p.id)}')">Edit</button> <button class="btn o sm" onclick="pAct('${esc(p.id)}','feat')">★</button> <button class="btn o sm" onclick="pAct('${esc(p.id)}','sold')">${sold(p) ? 'Restock' : 'Sold'}</button> <button class="btn o sm" onclick="pAct('${esc(p.id)}','del')">Delete</button>`]));
+  $('#pf').onsubmit = async e => {
+    e.preventDefault(); const f = e.target, old = D.products.find(x => x.id == f.elements.id.value) || {}, n = D.products.length + 1;
+    const go = async img => {
+      const p = { ...old, id: old.id || 'P' + Date.now().toString(36) + rid(), name: f.elements.name.value.trim(), cat: f.elements.cat.value, price: Math.round(+f.elements.price.value), stock: Math.max(0, Math.floor(+f.elements.stock.value || 0)), sku: old.sku || 'DAG-' + (100 + n), status: f.elements.status.value, featured: f.elements.feat.checked, desc: f.elements.desc.value.trim(), pal: old.pal != null ? old.pal : n % 6, seed: old.seed || n + 7 };
+      if (img) p.img = img;
+      if (p.status == 'sold' && p.stock > 0) p.status = 'published';
+      try { await API.admin.saveProduct(p); toast('Painting saved'); adminRender() } catch (err) { toast(err.message) }
     };
-    ['q', 'cat', 'sort'].forEach((id) => $('#' + id).addEventListener('input', draw));
-    draw();
-  }
+    const file = f.elements.img.files[0]; if (file) compress(file).then(go).catch(() => toast('Could not read that image')); else go(null);
+  };
+}
+function compress(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onerror = rej; r.onload = () => { const im = new Image(); im.onerror = rej; im.onload = () => { const k = Math.min(1, 900 / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .8)) }; im.src = r.result }; r.readAsDataURL(file) });
+}
+function pEdit(id) {
+  const p = D.products.find(x => x.id == id), f = $('#pf'); if (!p) return;
+  f.elements.id.value = p.id; f.elements.name.value = p.name; f.elements.cat.value = p.cat; f.elements.price.value = p.price; f.elements.stock.value = p.stock; f.elements.status.value = p.status == 'draft' ? 'draft' : 'published'; f.elements.feat.checked = !!p.featured; f.elements.desc.value = p.desc || '';
+  $('#pfT').textContent = 'Edit painting (choose a new image only to replace it)'; f.scrollIntoView({ behavior: 'smooth' });
+}
+async function pAct(id, a) {
+  const p = D.products.find(x => x.id == id); if (!p) return;
+  try {
+    if (a == 'del') { if (!confirm('Delete "' + p.name + '" permanently?')) return; await API.admin.deleteProduct(id) }
+    else { if (a == 'sold') { if (sold(p)) { p.stock = 1; p.status = 'published' } else { p.status = 'sold'; p.stock = 0 } } if (a == 'feat') p.featured = !p.featured; await API.admin.saveProduct(p) }
+    adminRender();
+  } catch (e) { toast(e.message) }
+}
+async function seed() {
+  if (!confirm('Add 8 sample paintings? You can delete them later.')) return;
+  try { for (let i = 0; i < SAMPLE.length; i++) { const a = SAMPLE[i]; await API.admin.saveProduct({ id: 'P-SAMPLE-' + (i + 1), name: a[0], cat: a[1], price: a[2], pal: a[3], seed: i + 3, stock: i % 4 == 3 ? 1 : 5, sku: 'DAG-' + (100 + i), status: 'published', featured: i < 4 }) } toast('Sample artworks added'); adminRender() } catch (e) { toast(e.message) }
+}
+function ca(m) {
+  const cnt = {}; D.events.filter(e => e.type == 'add').forEach(e => { const k = e.pid; cnt[k] = cnt[k] || { name: e.name, n: 0 }; cnt[k].n++ });
+  const top = Object.entries(cnt).sort((a, b) => b[1].n - a[1].n), ab = D.carts.filter(c => c.status != 'paid' && (c.items || []).length);
+  m.innerHTML = `<h3>Most added to cart</h3>` + tbl(['Painting', 'Times added', 'Stock'], top.map(([id, x]) => { const p = D.products.find(q => q.id == id); return [esc(x.name), x.n, p ? p.stock : '—'] })) +
+    `<h3 style="margin-top:1.5rem">Carts (what customers added)</h3>` + tbl(['Cart', 'Started', 'Last activity', 'Items', 'Value', 'Status'], D.carts.slice().sort((a, b) => (b.upd || 0) - (a.upd || 0)).map(c => [esc(c.id), fmt(c.start), fmt(c.upd), (c.items || []).map(i => esc(i.name) + ' ×' + i.q).join(', ') || '—', kes(c.value), `<span class="st ${c.status == 'paid' ? 'g' : 'r'}">${c.status == 'paid' ? 'purchased' : c.status == 'checkout' ? 'abandoned at checkout' : 'in cart / abandoned'}</span>`])) +
+    `<p class="mu">${ab.length} carts not yet purchased.</p>`;
+}
+function od(m) {
+  m.innerHTML = tbl(['Order', 'Date', 'Customer', 'Phone', 'Address', 'Items', 'Total', 'Method', 'Reference', 'Status'], D.orders.slice().sort((a, b) => b.date - a.date).map(o => [esc(o.id), fmt(o.date), esc(o.name), esc(o.phone), esc(o.addr), (o.items || []).map(x => esc(x.name) + '×' + x.q).join(', '), kes(o.total), esc(o.method), esc(o.ref || ''), sel(o.status, ['Pending', 'Paid', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Refunded', 'Failed'], `setSt('o','${esc(o.id)}',this.value)`)]));
+}
+function bk(m) {
+  m.innerHTML = `<h3>Commissions &amp; event bookings</h3>` + tbl(['Ref', 'Received', 'Client', 'Phone', 'Email', 'Service', 'Event date', 'Size', 'Budget', 'Idea', 'Status'], D.bookings.slice().sort((a, b) => (b.created || 0) - (a.created || 0)).map(b => [esc(b.ref), fmt(b.created), esc(b.name), esc(b.phone), esc(b.email), esc(b.service), esc(b.date || '—'), esc(b.size), esc(b.budget || '—'), esc(String(b.note || '').slice(0, 80)), sel(b.status, ['Pending', 'Quoted', 'Deposit paid', 'In progress', 'Completed', 'Cancelled'], `setSt('b','${esc(b.ref)}',this.value)`)]));
+}
+function ms(m) { m.innerHTML = '<p class="mu">Contact-form messages are stored in the database table service_requests (Supabase).</p>' }
+const sel = (cur, opts, on) => `<select onchange="${on}" style="width:auto;padding:.2rem">${opts.map(s => `<option ${s == cur ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
+async function setSt(k, id, v) { try { await API.admin.statuses(k == 'o' ? [{ id, status: v }] : [], k == 'b' ? [{ ref: id, status: v }] : []); toast('Status updated') } catch (e) { toast(e.message) } }
 
-  function productView(id) {
-    const p = prod(id);
-    if (!p) { view.innerHTML = '<div class="wrap"><p>Artwork not found. <a href="#/" style="color:var(--gold2)">Back to shop</a></p></div>'; return; }
-    view.innerHTML = `<div class="wrap"><p><a class="muted" href="#/">← All artworks</a></p>
-      <div class="two"><img class="big" src="${img(p)}" alt="${esc(p.name)}">
-        <div><h1>${esc(p.name)}</h1><p class="muted">${esc(p.category || '')}${p.artist ? ' · ' + esc(p.artist) : ''}</p>
-          <div class="price" style="font-size:26px;margin:8px 0">${money(p.price)}</div>
-          <p>${esc(p.desc || '')}</p>
-          <p class="muted">${p.medium ? 'Medium: ' + esc(p.medium) + '<br>' : ''}${p.size ? 'Size: ' + esc(p.size) + '<br>' : ''}${avail(p) ? (p.stock <= 3 ? 'Only ' + p.stock + ' left' : 'In stock') : 'Sold'}</p>
-          ${avail(p) ? `<button class="btn" id="add">Add to cart</button> <a class="btn ghost" href="#/checkout" id="buy">Buy now</a>` : '<span class="badge" style="position:static">SOLD</span>'}
-          <p class="muted" style="margin-top:18px;font-size:14px">Delivery KES 500, free over KES 20,000. Pay by M-Pesa or PayPal.</p></div></div></div>`;
-    const add = $('#add');
-    if (add) { add.onclick = () => { addToCart(p.id); openDrawer(); }; $('#buy').onclick = () => addToCart(p.id); }
-  }
-
-  function checkoutView() {
-    const t = totals();
-    if (!t.lines.length) { view.innerHTML = '<div class="wrap"><h1>Checkout</h1><p class="muted">Your cart is empty. <a style="color:var(--gold2)" href="#/">Browse artworks</a></p></div>'; return; }
-    const known = load('dag_customer', {});
-    view.innerHTML = `<div class="wrap"><h1>Checkout</h1><div class="two">
-      <form class="panel stack" id="co">
-        <div><label>Full name</label><input name="name" required maxlength="120" value="${esc(known.name || '')}"></div>
-        <div class="row"><div><label>Phone (Safaricom for M-Pesa)</label><input name="phone" required placeholder="07XXXXXXXX" value="${esc(known.phone || '')}"></div>
-          <div><label>Email</label><input name="email" type="email" value="${esc(known.email || '')}"></div></div>
-        <div><label>Delivery address</label><textarea name="addr" required rows="3" maxlength="400">${esc(known.addr || '')}</textarea></div>
-        <div><label>Payment method</label>
-          <select name="method"><option value="mpesa">M-Pesa (STK push to your phone)</option><option value="paypal">PayPal / card (charged in USD)</option></select></div>
-        <div><label>Discount code</label><input name="code" id="code" value="${esc(S.coupon)}" placeholder="Optional"></div>
-        <button class="btn" id="pay">Place order</button><div id="msg"></div></form>
-      <div class="panel" id="sumbox"></div></div></div>`;
-    const sum = () => {
-      S.coupon = $('#code').value.trim();
-      const x = totals();
-      $('#sumbox').innerHTML = `<h3>Order summary</h3>${x.lines.map((l) => `<div class="sum"><span>${esc(l.p.name)} × ${l.q}</span><span>${money(l.p.price * l.q)}</span></div>`).join('')}
-        <div class="sum"><span>Subtotal</span><span>${money(x.sub)}</span></div><div class="sum"><span>Delivery</span><span>${x.ship ? money(x.ship) : 'Free'}</span></div>
-        ${x.disc ? `<div class="sum"><span>Discount</span><span>− ${money(x.disc)}</span></div>` : ''}<div class="sum total"><span>Total</span><span>${money(x.total)}</span></div>
-        <p class="muted" style="font-size:13px">The final amount is confirmed by our server when you place the order.</p>`;
-    };
-    $('#code').addEventListener('input', sum); sum();
-    API.log('cart_events', S.sid + '-' + Date.now().toString(36) + rid(), { sid: S.sid, type: 'checkout_started', at: Date.now() });
-    $('#co').onsubmit = async (e) => {
-      e.preventDefault();
-      const f = Object.fromEntries(new FormData(e.target));
-      save('dag_customer', { name: f.name, phone: f.phone, email: f.email, addr: f.addr });
-      const btn = $('#pay'); btn.disabled = true; btn.textContent = 'Processing…'; $('#msg').innerHTML = '';
-      try {
-        const r = await API.checkout({ customer: { name: f.name, phone: f.phone, email: f.email, addr: f.addr }, method: f.method, items: S.cart.map((i) => ({ id: i.id, q: i.q })), code: S.coupon });
-        if (r.approveUrl) { save('dag_pending', r.orderId); location.href = r.approveUrl; return; }
-        waitForPayment(r.orderId);
-      } catch (err) {
-        btn.disabled = false; btn.textContent = 'Place order';
-        $('#msg').innerHTML = `<div class="note err">${esc(err.message)}</div>`;
-      }
-    };
-  }
-
-  async function waitForPayment(orderId) {
-    view.innerHTML = `<div class="wrap" style="max-width:640px"><div class="panel"><h2><span class="spin"></span>Check your phone</h2>
-      <p>An M-Pesa prompt has been sent. Enter your PIN to pay. This page updates automatically.</p><p class="muted">Order <b>${esc(orderId)}</b></p>
-      <a class="btn ghost sm" href="#/track/${encodeURIComponent(orderId)}">Track this order instead</a></div></div>`;
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, 3000));
-      if (!$('.spin')) return; // user navigated away
-      try {
-        const o = await API.order(orderId);
-        if (['Paid', 'Processing', 'Shipped', 'Delivered'].includes(o.status)) return paid(o);
-        if (o.status === 'Failed') return failed(o);
-      } catch { /* keep polling */ }
-    }
-    view.innerHTML = `<div class="wrap" style="max-width:640px"><div class="panel"><h2>Still waiting…</h2><p>We have not received M-Pesa confirmation yet. If you paid, it will show on your order shortly.</p>
-      <a class="btn" href="#/track/${encodeURIComponent(orderId)}">Track order ${esc(orderId)}</a></div></div>`;
-  }
-  function paid(o) {
-    S.cart = []; S.coupon = ''; syncCart('purchase', null, 'converted');
-    view.innerHTML = `<div class="wrap" style="max-width:640px"><div class="panel"><h2 style="color:var(--ok)">Payment received. Thank you!</h2>
-      <p>Order <b>${esc(o.id)}</b>${o.ref ? ' · Receipt <b>' + esc(o.ref) + '</b>' : ''}</p>
-      <p class="muted">We will contact you about delivery. Keep your order number to track it.</p>
-      <a class="btn" href="#/track/${encodeURIComponent(o.id)}">Track order</a> <a class="btn ghost" href="#/">Keep browsing</a></div></div>`;
-  }
-  function failed(o) {
-    view.innerHTML = `<div class="wrap" style="max-width:640px"><div class="panel"><h2 style="color:var(--bad)">Payment not completed</h2><p>${esc(o.failReason || 'The payment did not go through.')}</p>
-      <a class="btn" href="#/checkout">Try again</a></div></div>`;
-  }
-
-  function trackView(id) {
-    view.innerHTML = `<div class="wrap" style="max-width:720px"><h1>Track an order or booking</h1>
-      <form class="panel" id="tf" style="display:flex;gap:10px"><input id="tid" placeholder="Order DAG-XXXXXXXXXX or booking BK-XXXXXX" value="${esc(id || '')}" required><button class="btn">Track</button></form><div id="tres"></div></div>`;
-    const go = async (v) => {
-      v = v.trim().toUpperCase(); if (!v) return;
-      $('#tres').innerHTML = '<p class="muted"><span class="spin"></span>Looking up…</p>';
-      try {
-        if (v.startsWith('BK-')) {
-          const b = await API.bookingStatus(v);
-          $('#tres').innerHTML = `<div class="panel" style="margin-top:16px"><h3>Booking ${esc(b.ref)}</h3><p>${esc(b.service)}</p>${steps(['Pending', 'Confirmed', 'In progress', 'Completed'], b.status)}</div>`;
-        } else {
-          const o = await API.order(v);
-          $('#tres').innerHTML = `<div class="panel" style="margin-top:16px"><h3>Order ${esc(o.id)}</h3>${steps(['Pending', 'Paid', 'Processing', 'Shipped', 'Delivered'], o.status)}
-            ${o.status === 'Failed' ? `<div class="note err">${esc(o.failReason || 'Payment failed')}</div>` : ''}
-            ${(o.items || []).map((i) => `<div class="sum"><span>${esc(i.name)} × ${i.q}</span><span>${money(i.price * i.q)}</span></div>`).join('')}
-            <div class="sum total"><span>Total</span><span>${money(o.total)}</span></div></div>`;
-        }
-      } catch (e) { $('#tres').innerHTML = `<div class="note err">${esc(e.message)}</div>`; }
-    };
-    $('#tf').onsubmit = (e) => { e.preventDefault(); go($('#tid').value); };
-    if (id) go(id);
-  }
-  const steps = (list, cur) => `<div class="steps">${list.map((s) => `<span class="${s === cur ? 'on' : ''}">${esc(s)}</span>`).join('')}${list.includes(cur) ? '' : `<span class="on">${esc(cur)}</span>`}</div>`;
-
-  function commissionView() {
-    view.innerHTML = `<div class="wrap" style="max-width:760px"><h1>Commissions &amp; services</h1>
-      <p class="muted">Tell us what you have in mind: a portrait, a mural, a custom painting or framing. We will confirm availability and pricing.</p>
-      <form class="panel stack" id="bf">
-        <div class="row"><div><label>Full name</label><input name="name" required></div><div><label>Phone</label><input name="phone" required></div></div>
-        <div class="row"><div><label>Email</label><input name="email" type="email"></div><div><label>Service</label><select name="service">
-          <option>Custom portrait</option><option>Commissioned painting</option><option>Mural / wall art</option><option>Framing &amp; installation</option><option>Art consultation</option></select></div></div>
-        <div class="row"><div><label>Preferred date</label><input name="date" type="date"></div><div><label>Size (e.g. 60 x 90 cm)</label><input name="size"></div></div>
-        <div class="row"><div><label>Budget (KES)</label><input name="budget" inputmode="numeric"></div><div><label>Reference photos (optional)</label><input type="file" id="files" accept="image/*" multiple></div></div>
-        <div><label>Describe your idea</label><textarea name="note" rows="4"></textarea></div>
-        <button class="btn">Send request</button><div id="bmsg"></div></form></div>`;
-    $('#bf').onsubmit = async (e) => {
-      e.preventDefault();
-      const f = Object.fromEntries(new FormData(e.target));
-      f.files = ($('#files').files || []).length; // only the count is stored for now
-      try {
-        const r = await API.booking(f);
-        $('#bmsg').innerHTML = `<div class="note ok">Request received. Your booking reference is <b>${esc(r.ref)}</b>. We will call you soon. <a style="color:var(--gold2)" href="#/track/${encodeURIComponent(r.ref)}">Track it</a>.</div>`;
-        e.target.reset();
-      } catch (err) { $('#bmsg').innerHTML = `<div class="note err">${esc(err.message)}</div>`; }
-    };
-  }
-
-  function contactView() {
-    view.innerHTML = `<div class="wrap" style="max-width:640px"><h1>Contact us</h1><p class="muted">Questions about an artwork, shipping or prints? Send us a message.</p>
-      <form class="panel stack" id="cf"><div class="row"><div><label>Name</label><input name="name" required></div><div><label>Phone or email</label><input name="contact" required></div></div>
-        <div><label>Message</label><textarea name="message" rows="5" required></textarea></div><button class="btn">Send</button><div id="cmsg"></div></form></div>`;
-    $('#cf').onsubmit = async (e) => {
-      e.preventDefault();
-      const f = Object.fromEntries(new FormData(e.target));
-      await API.log('service_requests', 'SR-' + Date.now().toString(36) + rid(), { ...f, at: Date.now(), sid: S.sid });
-      $('#cmsg').innerHTML = '<div class="note ok">Thank you. We will get back to you shortly.</div>'; e.target.reset();
-    };
-  }
-
-  /* ---------- admin ---------- */
-  function adminView() {
-    if (!API.adminKey()) {
-      view.innerHTML = `<div class="wrap" style="max-width:420px"><h1>Staff sign-in</h1><form class="panel stack" id="lf"><div><label>Admin password</label><input type="password" id="pw" required autocomplete="current-password"></div>
-        <button class="btn">Sign in</button><div id="lmsg"></div></form></div>`;
-      $('#lf').onsubmit = async (e) => {
-        e.preventDefault();
-        try { sessionStorage.setItem('dag_admin', $('#pw').value); } catch { /* ignore */ }
-        try { S.adm.data = await API.admin.data(); adminView(); }
-        catch (err) { try { sessionStorage.removeItem('dag_admin'); } catch { /* ignore */ } $('#lmsg').innerHTML = `<div class="note err">${esc(err.message)}</div>`; }
-      };
-      return;
-    }
-    if (!S.adm.data) {
-      view.innerHTML = '<div class="wrap"><p><span class="spin"></span>Loading dashboard…</p></div>';
-      API.admin.data().then((d) => { S.adm.data = d; adminView(); }).catch((e) => { try { sessionStorage.removeItem('dag_admin'); } catch { /* ignore */ } toast(e.message, true); adminView(); });
-      return;
-    }
-    const d = S.adm.data, tabs = ['overview', 'products', 'orders', 'bookings', 'carts', 'social'];
-    view.innerHTML = `<div class="wrap"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><h1>Admin</h1>
-      <div><button class="btn ghost sm" id="refresh">Refresh</button> <button class="btn ghost sm" id="logout">Sign out</button></div></div>
-      <div class="tabs">${tabs.map((t) => `<button data-tab="${t}" class="${S.adm.tab === t ? 'on' : ''}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="tab"></div></div>`;
-    $$('[data-tab]').forEach((b) => b.onclick = () => { S.adm.tab = b.dataset.tab; S.adm.edit = null; adminView(); });
-    $('#refresh').onclick = () => { S.adm.data = null; adminView(); };
-    $('#logout').onclick = () => { try { sessionStorage.removeItem('dag_admin'); } catch { /* ignore */ } S.adm.data = null; adminView(); };
-    ({ overview: aOverview, products: aProducts, orders: aOrders, bookings: aBookings, carts: aCarts, social: aSocial })[S.adm.tab](d, $('#tab'));
-  }
-  const dt = (n) => n ? new Date(n).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }) : '';
-  const OS = ['Pending', 'Paid', 'Processing', 'Shipped', 'Delivered', 'Failed', 'Cancelled'], BS = ['Pending', 'Confirmed', 'In progress', 'Completed', 'Cancelled'];
-
-  function aOverview(d, el) {
-    const paidSt = ['Paid', 'Processing', 'Shipped', 'Delivered'];
-    const paidOrders = d.orders.filter((o) => paidSt.includes(o.status));
-    const rev = paidOrders.reduce((t, o) => t + (o.total || 0), 0);
-    const day = Date.now() - 864e5;
-    const openCarts = d.carts.filter((c) => c.status === 'open' && (c.items || []).length && c.updated > day).length;
-    const ev = (t) => d.events.filter((e) => e.type === t).length;
-    const best = {}; d.orders.filter((o) => paidSt.includes(o.status)).forEach((o) => o.items.forEach((i) => best[i.name] = (best[i.name] || 0) + i.q));
-    const top = Object.entries(best).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    el.innerHTML = `<div class="stats">
-      <div class="stat">Revenue (paid)<b>${money(rev)}</b></div><div class="stat">Orders<b>${d.orders.length}</b></div><div class="stat">Awaiting payment<b>${d.orders.filter((o) => o.status === 'Pending').length}</b></div>
-      <div class="stat">Pending bookings<b>${d.bookings.filter((b) => b.status === 'Pending').length}</b></div><div class="stat">Published artworks<b>${d.products.filter((p) => p.status === 'published').length}</b></div>
-      <div class="stat">Open carts (24h)<b>${openCarts}</b></div><div class="stat">Add-to-cart events<b>${ev('add_to_cart')}</b></div><div class="stat">Checkouts started<b>${ev('checkout_started')}</b></div></div>
-      <div class="panel"><h3>Best sellers</h3>${top.length ? top.map(([n, q]) => `<div class="sum"><span>${esc(n)}</span><span>${q} sold</span></div>`).join('') : '<p class="muted">No paid orders yet.</p>'}</div>
-      <p class="muted" style="font-size:13px">Cart analytics use the latest 1,000 events.</p>`;
-  }
-
-  function aProducts(d, el) {
-    const e = S.adm.edit;
-    el.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"><button class="btn" id="newp">+ New artwork</button><button class="btn ghost" id="samples">Load sample artworks</button></div>
-      ${e ? productForm(e) : ''}
-      <div class="panel scroll"><table><tr><th></th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr>
-        ${d.products.map((p) => `<tr><td><img class="thumb" src="${img(p)}" alt=""></td><td>${esc(p.name)}</td><td>${esc(p.category || '')}</td><td>${money(p.price)}</td><td>${p.stock ?? 0}</td><td>${esc(p.status)}</td>
-          <td><button class="btn ghost sm" data-edit="${esc(p.id)}">Edit</button> <button class="btn danger sm" data-del="${esc(p.id)}">Delete</button></td></tr>`).join('') || '<tr><td colspan="7" class="muted">No products yet. Add one or load the samples.</td></tr>'}</table></div>`;
-    $('#newp').onclick = () => { S.adm.edit = { id: 'P-' + Date.now().toString(36) + rid(), status: 'published', stock: 1, category: 'Painting', created: Date.now(), isNew: true }; adminView(); };
-    $('#samples').onclick = async () => {
-      if (!confirm('Add 8 sample artworks? Existing samples will be overwritten.')) return;
-      for (let i = 0; i < SAMPLES.length; i++) {
-        const [name, category, medium, size, price, stock, desc, seed] = SAMPLES[i];
-        await API.admin.saveProduct({ id: 'P-SAMPLE-' + (i + 1), name, category, medium, size, price, stock, desc, artist: 'Deko Arts', status: 'published', image: 'https://picsum.photos/seed/' + seed + '/600/750', created: Date.now() - i });
-      }
-      toast('Sample artworks loaded'); S.adm.data = null; await refreshProducts(); adminView();
-    };
-    $$('[data-edit]').forEach((b) => b.onclick = () => { S.adm.edit = { ...prod2(b.dataset.edit) }; adminView(); });
-    $$('[data-del]').forEach((b) => b.onclick = async () => {
-      if (!confirm('Delete this artwork permanently?')) return;
-      try { await API.admin.deleteProduct(b.dataset.del); toast('Deleted'); S.adm.data = null; await refreshProducts(); adminView(); } catch (err) { toast(err.message, true); }
-    });
-    const f = $('#pf');
-    if (f) {
-      $('#pimg').onchange = async (ev) => { const file = ev.target.files[0]; if (!file) return; try { $('#pimgdata').value = await compress(file); $('#ppreview').src = $('#pimgdata').value; } catch { toast('Could not read that image', true); } };
-      $('#pcancel').onclick = () => { S.adm.edit = null; adminView(); };
-      f.onsubmit = async (ev) => {
-        ev.preventDefault();
-        const v = Object.fromEntries(new FormData(f));
-        const p = { ...S.adm.edit, name: v.name.trim(), category: v.category.trim(), artist: v.artist.trim(), medium: v.medium.trim(), size: v.size.trim(), desc: v.desc.trim(), price: Math.max(0, Math.round(+v.price || 0)), stock: Math.max(0, Math.floor(+v.stock || 0)), status: v.status, image: v.image || '' };
-        delete p.isNew;
-        try { await API.admin.saveProduct(p); toast('Saved'); S.adm.edit = null; S.adm.data = null; await refreshProducts(); adminView(); } catch (err) { toast(err.message, true); }
-      };
-    }
-  }
-  const prod2 = (id) => S.adm.data.products.find((p) => p.id === id);
-  function productForm(p) {
-    return `<form class="panel stack" id="pf" style="margin-bottom:16px"><h3>${p.isNew ? 'New artwork' : 'Edit artwork'}</h3>
-      <div class="row"><div><label>Name</label><input name="name" required value="${esc(p.name)}"></div><div><label>Category</label><input name="category" value="${esc(p.category)}"></div></div>
-      <div class="row"><div><label>Artist</label><input name="artist" value="${esc(p.artist)}"></div><div><label>Medium</label><input name="medium" value="${esc(p.medium)}"></div></div>
-      <div class="row"><div><label>Size</label><input name="size" value="${esc(p.size)}"></div><div><label>Price (KES)</label><input name="price" type="number" min="0" required value="${esc(p.price)}"></div></div>
-      <div class="row"><div><label>Stock</label><input name="stock" type="number" min="0" value="${esc(p.stock)}"></div><div><label>Status</label><select name="status">${['published', 'draft', 'sold'].map((s) => `<option ${p.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>
-      <div><label>Description</label><textarea name="desc" rows="3">${esc(p.desc)}</textarea></div>
-      <div><label>Image (uploaded images are compressed)</label><input type="file" id="pimg" accept="image/*"><input type="hidden" name="image" id="pimgdata" value="${esc(p.image)}">
-        <img id="ppreview" class="thumb" style="width:90px;height:110px;margin-top:8px" src="${p.image ? esc(p.image) : ''}" alt=""></div>
-      <div><button class="btn">Save artwork</button> <button type="button" class="btn ghost" id="pcancel">Cancel</button></div></form>`;
-  }
-  function compress(file, max = 900) {
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => { const im = new Image(); im.onload = () => { const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.8)); }; im.onerror = rej; im.src = r.result; };
-      r.onerror = rej; r.readAsDataURL(file);
-    });
-  }
-  async function refreshProducts() { try { S.products = await API.products(); } catch { /* keep old */ } }
-
-  function aOrders(d, el) {
-    const list = [...d.orders].sort((a, b) => b.date - a.date);
-    el.innerHTML = `<div class="panel scroll"><table><tr><th>Order</th><th>Date</th><th>Customer</th><th>Method</th><th>Total</th><th>Receipt</th><th>Status</th></tr>
-      ${list.map((o) => `<tr><td>${esc(o.id)}</td><td>${dt(o.date)}</td><td>${esc(o.name)}<div class="muted">${esc(o.phone)} ${esc(o.email)}<br>${esc(o.addr)}</div></td><td>${esc(o.method)}</td><td>${money(o.total)}<div class="muted">${(o.items || []).map((i) => esc(i.name) + '×' + i.q).join(', ')}</div></td><td>${esc(o.ref || '')}</td>
-        <td><select data-oid="${esc(o.id)}">${OS.map((s) => `<option ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td></tr>`).join('') || '<tr><td colspan="7" class="muted">No orders yet.</td></tr>'}</table></div>
-      <p><button class="btn" id="saveO">Save status changes</button></p>`;
-    $$('[data-oid]').forEach((s) => s.onchange = () => { S.adm.orderEdits[s.dataset.oid] = s.value; });
-    $('#saveO').onclick = () => saveStatuses();
-  }
-  function aBookings(d, el) {
-    const list = [...d.bookings].sort((a, b) => b.created - a.created);
-    el.innerHTML = `<div class="panel scroll"><table><tr><th>Ref</th><th>Date</th><th>Customer</th><th>Service</th><th>Details</th><th>Status</th></tr>
-      ${list.map((b) => `<tr><td>${esc(b.ref)}</td><td>${dt(b.created)}</td><td>${esc(b.name)}<div class="muted">${esc(b.phone)} ${esc(b.email)}</div></td><td>${esc(b.service)}</td>
-        <td class="muted">${esc(b.date)} ${esc(b.size)} ${b.budget ? 'KES ' + esc(b.budget) : ''}<br>${esc(b.note)}${b.files ? '<br>' + esc(b.files) + ' photo(s) mentioned' : ''}</td>
-        <td><select data-bref="${esc(b.ref)}">${BS.map((s) => `<option ${b.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No bookings yet.</td></tr>'}</table></div>
-      <p><button class="btn" id="saveB">Save status changes</button></p>`;
-    $$('[data-bref]').forEach((s) => s.onchange = () => { S.adm.bookEdits[s.dataset.bref] = s.value; });
-    $('#saveB').onclick = () => saveStatuses();
-  }
-  async function saveStatuses() {
-    const orders = Object.entries(S.adm.orderEdits).map(([id, status]) => ({ id, status }));
-    const bookings = Object.entries(S.adm.bookEdits).map(([ref, status]) => ({ ref, status }));
-    if (!orders.length && !bookings.length) return toast('No changes to save');
-    try { await API.admin.statuses(orders, bookings); S.adm.orderEdits = {}; S.adm.bookEdits = {}; toast('Statuses saved'); S.adm.data = null; adminView(); } catch (e) { toast(e.message, true); }
-  }
-  function aCarts(d, el) {
-    const list = [...d.carts].sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 100);
-    el.innerHTML = `<div class="panel scroll"><table><tr><th>Session</th><th>Updated</th><th>Items</th><th>Value</th><th>Status</th></tr>
-      ${list.map((c) => `<tr><td>${esc(c.sid)}</td><td>${dt(c.updated)}</td><td>${(c.items || []).map((i) => esc(i.name) + '×' + i.q).join(', ')}</td><td>${money(c.total)}</td><td>${esc(c.status)}${c.status === 'open' && (c.items || []).length && Date.now() - c.updated > 36e5 ? ' (abandoned?)' : ''}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No cart activity yet.</td></tr>'}</table></div>`;
-  }
-
-  function aSocial(d, el) {
-    const posts = load('dag_social', []);
-    el.innerHTML = `<div class="panel stack"><h3>Social Studio</h3><p class="muted" style="font-size:14px">Plan posts for Instagram, TikTok, Facebook and WhatsApp. Posts are saved in this browser only for now.</p>
-      <div class="row"><div><label>Platform</label><select id="sp">${['Instagram', 'TikTok', 'Facebook', 'WhatsApp Status'].map((x) => `<option>${x}</option>`).join('')}</select></div>
-        <div><label>Artwork (optional)</label><select id="sa"><option value="">—</option>${d.products.map((p) => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></div></div>
-      <div><label>Caption</label><textarea id="sc" rows="3"></textarea></div><div class="row"><div><label>Planned date</label><input type="date" id="sd"></div><div style="align-self:end"><button class="btn ghost" id="sg">Suggest caption</button> <button class="btn" id="ss">Save post</button></div></div></div>
-      <div class="panel scroll" style="margin-top:16px"><table><tr><th>Date</th><th>Platform</th><th>Caption</th><th></th></tr>
-      ${posts.map((p, i) => `<tr><td>${esc(p.date)}</td><td>${esc(p.platform)}</td><td>${esc(p.caption)}</td><td><button class="btn danger sm" data-sdel="${i}">Delete</button></td></tr>`).join('') || '<tr><td colspan="4" class="muted">No planned posts.</td></tr>'}</table></div>`;
-    $('#sg').onclick = () => { const p = d.products.find((x) => x.id === $('#sa').value); $('#sc').value = p ? `New in the gallery: "${p.name}" — ${p.medium || p.category || 'original art'}, ${money(p.price)}. DM or order on our website. #DekoArtsGallery #KenyanArt` : 'Behind the scenes at Deko Arts Gallery. Commissions are open! #DekoArtsGallery #KenyanArt'; };
-    $('#ss').onclick = () => { if (!$('#sc').value.trim()) return toast('Write a caption first', true); posts.unshift({ platform: $('#sp').value, caption: $('#sc').value.trim(), date: $('#sd').value || 'unscheduled' }); save('dag_social', posts); aSocial(d, el); };
-    $$('[data-sdel]').forEach((b) => b.onclick = () => { posts.splice(+b.dataset.sdel, 1); save('dag_social', posts); aSocial(d, el); });
-  }
-
-  /* ---------- router & boot ---------- */
-  function router() {
-    const h = location.hash || '#/';
-    closeDrawer();
-    $$('[data-nav]').forEach((a) => a.classList.remove('on'));
-    window.scrollTo(0, 0);
-    if (/^#\/?admin/.test(h)) return adminView();
-    let m;
-    if ((m = h.match(/^#\/product\/(.+)$/))) return productView(decodeURIComponent(m[1]));
-    if (h.startsWith('#/commission')) { $('[data-nav=commission]').classList.add('on'); return commissionView(); }
-    if (h.startsWith('#/track')) { $('[data-nav=track]').classList.add('on'); return trackView(decodeURIComponent(h.split('/')[2] || '')); }
-    if (h.startsWith('#/contact')) { $('[data-nav=contact]').classList.add('on'); return contactView(); }
-    if (h.startsWith('#/checkout')) return checkoutView();
-    $('[data-nav=shop]').classList.add('on');
-    return shopView();
-  }
-
-  async function handlePaypalReturn() {
-    const q = new URLSearchParams(location.search);
-    if (q.get('paypal_cancel')) { history.replaceState(null, '', location.pathname + '#/checkout'); toast('PayPal payment cancelled', true); return true; }
-    if (!q.get('paypal_return')) return false;
-    const order = q.get('order'), token = q.get('token');
-    history.replaceState(null, '', location.pathname + '#/track/' + encodeURIComponent(order || ''));
-    view.innerHTML = '<div class="wrap" style="max-width:640px"><div class="panel"><h2><span class="spin"></span>Confirming your PayPal payment…</h2></div></div>';
-    try { const o = await API.paypalCapture(order, token); paid(o); } catch (e) { view.innerHTML = `<div class="wrap" style="max-width:640px"><div class="panel"><h2 style="color:var(--bad)">Payment not confirmed</h2><p>${esc(e.message)}</p><a class="btn" href="#/checkout">Back to checkout</a></div></div>`; }
-    return true;
-  }
-
-  async function boot() {
-    $('#yr').textContent = new Date().getFullYear();
-    $('#cartBtn').onclick = openDrawer;
-    $('#closeDrawer').onclick = closeDrawer;
-    $('#shade').onclick = closeDrawer;
-    $('#drawer').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-act]'); if (!b) return;
-      const it = S.cart.find((i) => i.id === b.dataset.id);
-      if (b.dataset.act === 'inc') setQty(b.dataset.id, (it ? it.q : 0) + 1);
-      if (b.dataset.act === 'dec') setQty(b.dataset.id, (it ? it.q : 1) - 1);
-      if (b.dataset.act === 'rm') setQty(b.dataset.id, 0);
-    });
-    try { S.products = await API.products(); } catch (e) { toast('Could not load artworks: ' + e.message, true); }
-    S.cart = S.cart.filter((i) => prod(i.id));
-    save('dag_cart', S.cart);
-    $('#cartN').textContent = S.cart.reduce((t, i) => t + i.q, 0);
-    window.addEventListener('hashchange', router);
-    if (await handlePaypalReturn()) return;
-    router();
-  }
-  boot();
-})();
+/* ---------- theme + router ---------- */
+function toggleTheme() { const r = document.documentElement, d = r.dataset.theme ? r.dataset.theme == 'dark' : !matchMedia('(prefers-color-scheme:light)').matches; r.dataset.theme = d ? 'light' : 'dark' }
+function route() { let h = (location.hash || '#home').slice(1); if (h == '/admin') h = 'admin'; if (!$('#' + h)) h = 'home'; $$('section.v').forEach(s => s.classList.toggle('on', s.id == h)); $$('#nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') == '#' + h)); scrollTo(0, 0) }
+addEventListener('hashchange', route);
+route(); home(); shop(); upCart(); loadProducts(); paypalReturn();
+try { if (sessionStorage.getItem('dag_admin')) { API.admin.data().then(() => adminShow()).catch(() => adminOut()) } } catch (e) { }
