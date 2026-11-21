@@ -1,91 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deko Arts Gallery — Original African Art, Commissions &amp; Prints</title>
-<meta name="description" content="Deko Arts Gallery: buy original artworks, commission custom pieces and pay with M-Pesa or PayPal.">
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deko Arts Gallery — Original Art for Sale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f0e0d;--panel:#1a1816;--panel2:#221f1c;--line:#34302b;--text:#f3ede2;--muted:#a79f92;--gold:#c9a24b;--gold2:#e2c377;--ok:#4caf7a;--bad:#e0675b}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,'Times New Roman',serif;line-height:1.5}
-a{color:inherit;text-decoration:none}
-button,input,select,textarea{font:inherit;color:inherit}
-h1,h2,h3{font-weight:normal;margin:0 0 .4em}
-.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;background:rgba(15,14,13,.95);border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
-.brand{font-size:20px;letter-spacing:.18em;text-transform:uppercase}.brand span{color:var(--gold)}
-.top nav{display:flex;align-items:center;gap:20px;font-size:15px;flex-wrap:wrap}
-.top nav a{color:var(--muted)}.top nav a:hover,.top nav a.on{color:var(--gold2)}
-.btn{display:inline-block;background:var(--gold);color:#17130b;border:0;padding:11px 20px;cursor:pointer;letter-spacing:.04em;font-size:15px}
-.btn:hover{background:var(--gold2)}.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}.btn.ghost:hover{border-color:var(--gold);color:var(--gold2)}
-.btn.sm{padding:6px 12px;font-size:13px}.btn.danger{background:var(--bad);color:#fff}
-.cartbtn{background:transparent;border:1px solid var(--gold);color:var(--gold2);padding:7px 14px;cursor:pointer}
-.cartbtn b{background:var(--gold);color:#17130b;border-radius:10px;padding:0 7px;margin-left:6px;font-size:13px}
-main{min-height:70vh}
-.wrap{max-width:1180px;margin:0 auto;padding:28px}
-.hero{text-align:center;padding:70px 20px 40px;background:radial-gradient(ellipse at top,#2a2217 0,var(--bg) 70%)}
-.hero h1{font-size:clamp(30px,5vw,54px);letter-spacing:.04em}.hero p{color:var(--muted);max-width:620px;margin:10px auto 22px}
-.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-input,select,textarea{background:var(--panel);border:1px solid var(--line);padding:10px 12px;width:100%}
-.tools input{flex:2;min-width:180px}.tools select{flex:1;min-width:140px}
-input:focus,select:focus,textarea:focus{outline:1px solid var(--gold)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:24px}
-.card{background:var(--panel);border:1px solid var(--line);display:block;transition:.15s}
-.card:hover{transform:translateY(-3px);border-color:var(--gold)}
-.card .img{position:relative;aspect-ratio:4/5;background:#000}.card img{width:100%;height:100%;object-fit:cover;display:block}
-.badge{position:absolute;top:10px;left:10px;background:var(--bad);color:#fff;font-size:12px;padding:2px 8px;letter-spacing:.06em}
-.card .info{padding:14px 16px 18px}.card h3{font-size:18px}.muted{color:var(--muted)}.price{color:var(--gold2);font-size:17px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:36px}
-.two img.big{width:100%;border:1px solid var(--line);display:block}
-.panel{background:var(--panel);border:1px solid var(--line);padding:22px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stack>*{margin-bottom:12px}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;letter-spacing:.04em}
-.qty{display:inline-flex;align-items:center;border:1px solid var(--line)}.qty button{background:none;border:0;width:32px;height:32px;cursor:pointer;color:var(--gold2);font-size:18px}.qty span{min-width:30px;text-align:center}
-#drawer{position:fixed;top:0;right:0;bottom:0;width:min(430px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;z-index:40;display:flex;flex-direction:column}
-#drawer.open{transform:none}#drawer header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
-#dlines{flex:1;overflow:auto;padding:6px 20px}#dfoot{padding:16px 20px;border-top:1px solid var(--line)}
-.line{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.line img{width:54px;height:68px;object-fit:cover}.line .t{flex:1;font-size:15px}
-.sum{display:flex;justify-content:space-between;margin:4px 0}.sum.total{font-size:19px;color:var(--gold2);border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
-.shade{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:30;display:none}.shade.on{display:block}
-#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center}
-.toast{background:var(--panel2);border:1px solid var(--gold);padding:10px 18px;box-shadow:0 6px 20px rgba(0,0,0,.5)}.toast.err{border-color:var(--bad)}
-.note{padding:12px 14px;border:1px solid var(--line);margin:12px 0}.note.ok{border-color:var(--ok)}.note.err{border-color:var(--bad)}
-.steps{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}.steps span{padding:4px 12px;border:1px solid var(--line);font-size:13px;color:var(--muted)}.steps span.on{border-color:var(--gold);color:var(--gold2)}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}th{color:var(--muted);font-weight:normal;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.scroll{overflow:auto}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}.tabs button{background:var(--panel);border:1px solid var(--line);padding:8px 16px;cursor:pointer;color:var(--muted)}.tabs button.on{border-color:var(--gold);color:var(--gold2)}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}.stat{background:var(--panel);border:1px solid var(--line);padding:16px}.stat b{display:block;font-size:24px;color:var(--gold2)}
-.thumb{width:44px;height:54px;object-fit:cover;background:#000}
-footer{border-top:1px solid var(--line);padding:30px 20px;text-align:center;color:var(--muted);font-size:14px;margin-top:40px}
-.spin{display:inline-block;width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:s 1s linear infinite;vertical-align:middle;margin-right:8px}@keyframes s{to{transform:rotate(360deg)}}
-@media(max-width:760px){.two,.row{grid-template-columns:1fr}.top{padding:12px 16px}.wrap{padding:18px}}
-</style>
-</head>
-<body>
-<header class="top">
-  <a class="brand" href="#/">Deko <span>Arts</span> Gallery</a>
-  <nav>
-    <a href="#/" data-nav="shop">Shop</a>
-    <a href="#/commission" data-nav="commission">Commissions</a>
-    <a href="#/track" data-nav="track">Track order</a>
-    <a href="#/contact" data-nav="contact">Contact</a>
-    <button class="cartbtn" id="cartBtn" aria-label="Open cart">Cart <b id="cartN">0</b></button>
-  </nav>
-</header>
-<main id="view"></main>
-<footer>
-  <div>© <span id="yr"></span> Deko Arts Gallery · Pay with M-Pesa or PayPal · Delivery across Kenya</div>
-  <div style="margin-top:6px"><a href="#/admin" style="color:var(--line)">Staff</a></div>
-</footer>
-<div class="shade" id="shade"></div>
-<aside id="drawer" aria-label="Shopping cart">
-  <header><h2 style="margin:0">Your cart</h2><button class="btn ghost sm" id="closeDrawer">Close</button></header>
-  <div id="dlines"></div>
-  <div id="dfoot"></div>
-</aside>
-<div id="toast"></div>
-<script src="js/api-mode.js"></script>
-<script src="js/app.js"></script>
-</body>
-</html>
+:root{--bg:#0b0b0c;--s1:#151517;--s2:#1e1e21;--tx:#f3eee2;--mu:#9a958a;--gold:#c9a24b;--ln:#2c2c30;--ok:#4cc38a;--bad:#e5645a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#faf6ec;--s1:#fff;--s2:#f0e9d8;--tx:#1b1a17;--mu:#6e6a60;--gold:#a67c1e;--ln:#ded5bf;color-scheme:light}}
+:root[data-theme="light"]{--bg:#faf6ec;--s1:#fff;--s2:#f0e9d8;--tx:#1b1a17;--mu:#6e6a60;--gold:#a67c1e;--ln:#ded5bf;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0b0b0c;--s1:#151517;--s2:#1e1e21;--tx:#f3eee2;--mu:#9a958a;--gold:#c9a24b;--ln:#2c2c30}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:400 16px/1.6 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;margin:0 0 .5em;line-height:1.15}
+h1{font-size:clamp(2.4rem,7vw,5rem)}h2{font-size:clamp(1.8rem,4vw,2.8rem)}
+a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:1rem;padding:.8rem 5vw;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--ln)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+.logo{font:700 1.2rem 'Playfair Display',serif;letter-spacing:.12em;color:var(--gold)}
+nav{display:flex;gap:1.2rem;margin-left:auto;overflow-x:auto;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase}
+nav a{color:var(--mu);white-space:nowrap;padding:.3rem 0;border-bottom:1px solid transparent}nav a.on,nav a:hover{color:var(--tx);border-color:var(--gold)}
+.btn{background:var(--gold);color:#111;border:0;padding:.7rem 1.4rem;border-radius:999px;font-weight:600;cursor:pointer;transition:.25s}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px #c9a24b44}
+.btn.o{background:none;color:var(--tx);border:1px solid var(--ln)}.btn.sm{padding:.35rem .9rem;font-size:.8rem}
+section.v{display:none;padding:4rem 5vw;max-width:1300px;margin:auto}section.v.on{display:block;animation:in .5s}
+@keyframes in{from{opacity:0;transform:translateY(14px)}}
+.hero{min-height:80vh;display:grid;grid-template-columns:1.1fr .9fr;gap:3rem;align-items:center}
+.eyebrow{color:var(--gold);letter-spacing:.3em;font-size:.75rem;text-transform:uppercase}
+.hero p{color:var(--mu);max-width:34rem}.pills{display:flex;gap:.6rem;flex-wrap:wrap;margin:1.2rem 0}.pill{border:1px solid var(--ln);padding:.25rem .8rem;border-radius:99px;font-size:.78rem;color:var(--mu)}
+.frame{border:10px solid var(--s2);outline:1px solid var(--gold);box-shadow:0 30px 80px #0008;border-radius:2px;overflow:hidden;transform:perspective(900px) rotateY(-8deg);transition:.6s}.frame:hover{transform:none}
+.frame svg,.card svg{display:block;width:100%;height:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:1.4rem}
+.card{background:var(--s1);border:1px solid var(--ln);border-radius:6px;overflow:hidden;transition:.3s;position:relative}.card:hover{transform:translateY(-5px);border-color:var(--gold)}
+.card .b{padding:1rem}.card h3{font-size:1.1rem;margin:0}.mu{color:var(--mu);font-size:.85rem}.price{color:var(--gold);font-weight:600}
+.card img{width:100%;display:block;aspect-ratio:300/380;object-fit:cover}
+.heart{position:absolute;top:.6rem;right:.6rem;background:#0009;border:0;border-radius:50%;width:34px;height:34px;color:#fff;cursor:pointer}.heart.on{color:var(--bad)}
+.tag{position:absolute;top:.6rem;left:.6rem;background:var(--bad);color:#fff;font-size:.7rem;padding:.1rem .6rem;border-radius:99px}
+.bar{display:flex;gap:.7rem;flex-wrap:wrap;margin:1.5rem 0}
+input,select,textarea{background:var(--s1);border:1px solid var(--ln);border-radius:8px;padding:.65rem .9rem;width:100%}textarea{min-height:90px}
+.bar input,.bar select{width:auto;flex:1;min-width:140px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem}
+.box{background:var(--s1);border:1px solid var(--ln);border-radius:8px;padding:1.4rem}
+form{display:grid;gap:.8rem}label{font-size:.8rem;color:var(--mu)}
+.cube-wrap{perspective:700px;height:220px;display:grid;place-items:center}
+.cube{width:110px;height:110px;position:relative;transform-style:preserve-3d;animation:spin 10s linear infinite}
+.cube i{position:absolute;inset:0;border:1px solid var(--gold);background:linear-gradient(135deg,#c9a24b55,#c9a24b11);display:grid;place-items:center;font:normal 700 .7rem Inter;letter-spacing:.2em;color:var(--gold)}
+.cube i:nth-child(1){transform:translateZ(55px)}.cube i:nth-child(2){transform:rotateY(180deg) translateZ(55px)}.cube i:nth-child(3){transform:rotateY(90deg) translateZ(55px)}.cube i:nth-child(4){transform:rotateY(-90deg) translateZ(55px)}.cube i:nth-child(5){transform:rotateX(90deg) translateZ(55px)}.cube i:nth-child(6){transform:rotateX(-90deg) translateZ(55px)}
+@keyframes spin{to{transform:rotateX(360deg) rotateY(360deg)}}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--s1);border-left:1px solid var(--ln);z-index:50;transform:translateX(100%);transition:.35s;display:flex;flex-direction:column;padding:calc(1.2rem + env(safe-area-inset-top,0px)) 1.2rem 1.2rem}.drawer.on{transform:none}
+.items{flex:1;overflow:auto}.it{display:flex;gap:.8rem;align-items:center;padding:.7rem 0;border-bottom:1px solid var(--ln)}.it .th{width:56px;flex:none}.it .th svg,.it .th img{width:100%;display:block}
+.modal{position:fixed;inset:0;background:#000a;z-index:60;display:none;place-items:center;padding:1rem;overflow:auto}.modal.on{display:grid}.modal .box{width:min(480px,100%);max-height:92vh;overflow:auto}
+.toast{position:fixed;left:50%;bottom:calc(1.5rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#111;padding:.7rem 1.2rem;border-radius:99px;z-index:70;opacity:0;transition:.3s;pointer-events:none}.toast.on{opacity:1}
+.adm{display:grid;grid-template-columns:200px 1fr;gap:1.5rem}.side{display:flex;flex-direction:column;gap:.3rem}.side button{text-align:left;background:none;border:0;padding:.6rem .8rem;border-radius:8px;color:var(--mu);cursor:pointer}.side button.on{background:var(--s2);color:var(--gold)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin-bottom:1.2rem}.kpi b{display:block;font:500 1.7rem 'Playfair Display',serif;color:var(--gold)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{text-align:left;padding:.6rem;border-bottom:1px solid var(--ln);white-space:nowrap}th{color:var(--mu);font-weight:400}
+.st{padding:.1rem .6rem;border-radius:99px;font-size:.72rem;background:var(--s2)}.st.g{color:var(--ok)}.st.r{color:var(--bad)}
+footer{border-top:1px solid var(--ln);padding:2rem 5vw;color:var(--mu);text-align:center;font-size:.85rem}
+@media(max-width:800px){.hero,.adm{grid-template-columns:1fr}.side{flex-direction:row;overflow-x:auto}.frame{transform:none}header{flex-wrap:wrap}nav{order:3;width:100%;margin:0}}
+.err{color:var(--bad)}.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}.thumb{width:44px;height:56px;object-fit:cover;border-radius:3px;display:block}.thumb svg{width:44px;height:auto}.empty{padding:2rem;text-align:center;color:var(--mu)}</style></head><body>
+<header><a class="logo" href="#home">DEKO ARTS</a>
+<nav id="nav"><a href="#home">Home</a><a href="#shop">Art Shop</a><a href="#book">Custom &amp; Bookings</a><a href="#motion">3D &amp; Motion</a><a href="#services">Services</a><a href="#contact">About &amp; Contact</a><a href="#admin">Admin</a></nav>
+<button class="btn sm" onclick="openCart()">Cart (<span id="cc">0</span>)</button></header>
+
+<section class="v" id="home"><div class="hero"><div><div class="eyebrow">Art • Design • Animation</div><h1>Where creativity meets technology.</h1><p>Original paintings, custom commissions, event art and cinematic 3D motion from Deko Arts Gallery, delivered across Kenya and worldwide.</p><div class="pills"><span class="pill">Online art shop</span><span class="pill">M-Pesa &amp; PayPal</span><span class="pill">3D &amp; Motion</span></div><a class="btn" href="#shop">Explore the collection</a> <a class="btn o" href="#book">Commission art</a></div><div class="frame" id="heroArt"></div></div>
+<h2>Featured &amp; new arrivals</h2><div class="grid" id="featured"></div>
+<div class="cols" style="margin-top:3rem"><div class="box"><h3>Custom art promotion</h3><p class="mu">Portraits, murals and wedding pieces made to your size and story. Request a quotation in minutes.</p></div><div class="box"><h3>Testimonials</h3><p class="mu">“The portrait of my parents moved the whole family to tears.” — Wanjiru K.<br>“Our office mural transformed the space.” — Brian O.</p></div><div class="box"><h3>About Deko Arts</h3><p class="mu">A creative studio blending African contemporary painting with modern digital craft.</p></div></div></section>
+
+<section class="v" id="shop"><h2>Art Shop</h2><div class="bar"><input id="q" placeholder="Search artwork…" oninput="shop()"><select id="cat" onchange="shop()"><option value="">All categories</option><option>Original painting</option><option>Canvas print</option><option>Digital artwork</option><option>Portrait</option><option>Abstract</option><option>African contemporary</option><option>Wall art</option></select><select id="sort" onchange="shop()"><option value="">Sort</option><option value="a">Price low–high</option><option value="d">Price high–low</option></select><button class="btn o" id="wl" onclick="wlOnly=!wlOnly;shop()">♥ Wishlist</button></div><div class="grid" id="shopGrid"></div></section>
+
+<section class="v" id="book"><h2>Custom Art &amp; Event Bookings</h2><p class="mu">Request a custom painting or book Deko Arts for weddings, birthdays, exhibitions and corporate events.</p><div class="cols"><div class="box"><form id="bkForm"><input name="name" placeholder="Full name" required><input name="phone" placeholder="Phone / WhatsApp" required><input name="email" type="email" placeholder="Email"><select name="service"><option>Custom painting</option><option>Wedding live art</option><option>Birthday</option><option>Exhibition</option><option>Corporate event</option></select><input name="date" type="date"><select name="size"><option>Small</option><option>Medium</option><option>Large</option><option>Custom size</option></select><input name="budget" placeholder="Budget (KES)"><label>Reference images</label><input type="file" name="ref" accept="image/*" multiple><textarea name="note" placeholder="Describe your idea"></textarea><button class="btn">Request quotation</button></form></div><div class="box"><h3>Track your booking</h3><form id="trForm"><input name="ref" placeholder="Booking ref e.g. BK-1001"><button class="btn o">Track</button></form><p id="trOut" class="mu"></p></div></div></section>
+
+<section class="v" id="motion"><h2>3D Motion &amp; Creative Studio</h2><div class="cube-wrap"><div class="cube"><i>3D</i><i>MOTION</i><i>2D</i><i>BRAND</i><i>VFX</i><i>DEKO</i></div></div><div class="cols" id="motionCards"></div></section>
+
+<section class="v" id="services"><h2>Home &amp; Creative Services</h2><div class="cols" id="svcCards"></div></section>
+
+<section class="v" id="contact"><h2>About &amp; Contact</h2><div class="cols"><div class="box"><h3>Our story</h3><p class="mu">Deko Arts Gallery began with a brush and a belief that art should live in every home. Today we combine painting, murals, 3D animation and branding under one creative roof.</p><p class="mu">Studio: Eldoret, Kenya · Service enquiries across Kenya and worldwide.</p><p><a class="btn" id="wa" target="_blank" rel="noopener" href="https://wa.me/254700000000">WhatsApp us</a></p><p class="mu">Instagram · Facebook · TikTok · YouTube — @dekoartsgallery</p></div><div class="box"><form id="ctForm"><input name="name" placeholder="Your name" required><input name="email" type="email" placeholder="Email" required><textarea name="msg" placeholder="How can we help?" required></textarea><button class="btn">Send message</button></form></div></div></section>
+
+<section class="v" id="admin"><div id="gate" class="box" style="max-width:380px;margin:auto"><h3>Admin sign-in</h3><form id="gForm"><input type="password" id="pw" placeholder="Password"><button class="btn">Enter</button></form><p class="mu" id="gErr" style="color:var(--bad)"></p><p class="mu">Staff only. Sign in with the admin password.</p></div><div id="panel" style="display:none"><div class="adm"><div class="side" id="side"></div><div id="aMain"></div></div></div></section>
+
+<footer>© 2026 Deko Arts Gallery · Art • Design • Animation · <a href="#" onclick="toggleTheme();return false" style="color:var(--gold)">Toggle theme</a></footer>
+
+<div class="drawer" id="drawer"><div style="display:flex;justify-content:space-between"><h3>Your cart</h3><button class="btn o sm" onclick="closeCart()">Close</button></div><div class="items" id="items"></div><div id="sum"></div></div>
+<div class="modal" id="ck"><div class="box"><h3>Checkout</h3><form id="ckForm"><input name="name" placeholder="Full name" required><input name="phone" placeholder="M-Pesa phone e.g. 0712345678" required><input name="email" type="email" placeholder="Email"><textarea name="addr" placeholder="Delivery address" required></textarea><select name="pay"><option value="mpesa">Pay with M-Pesa (STK Push)</option><option value="paypal">Pay with PayPal</option></select><p class="mu" id="ckTot"></p><button class="btn" id="payBtn">Pay now</button><button type="button" class="btn o" onclick="ck.classList.remove('on')">Cancel</button></form></div></div>
+<div class="modal" id="rc"><div class="box" id="rcBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="js/api-mode.js"></script><script src="js/app.js"></script></body></html>
