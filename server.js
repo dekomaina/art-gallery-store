@@ -135,6 +135,7 @@ app.post('/api/admin/statuses',admin,h(async(q,s)=>{
   s.json({ok:1})}));
 
 app.use('/api',(q,s)=>s.status(404).json({error:'Not found'}));
+app.get('/admin',(q,s)=>s.sendFile(path.join(__dirname,'public','index.html')));
 app.use(express.static(path.join(__dirname,'public')));
 if (require.main === module) {
   const PORT = Number(E.PORT || 3001);
