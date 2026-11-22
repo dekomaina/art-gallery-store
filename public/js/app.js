@@ -209,7 +209,7 @@ async function setSt(k, id, v) { try { await API.admin.statuses(k == 'o' ? [{ id
 
 /* ---------- theme + router ---------- */
 function toggleTheme() { const r = document.documentElement, d = r.dataset.theme ? r.dataset.theme == 'dark' : !matchMedia('(prefers-color-scheme:light)').matches; r.dataset.theme = d ? 'light' : 'dark' }
-function route() { let h = (location.hash || '#home').slice(1); if (h == '/admin') h = 'admin'; if (!$('#' + h)) h = 'home'; $$('section.v').forEach(s => s.classList.toggle('on', s.id == h)); $$('#nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') == '#' + h)); scrollTo(0, 0) }
+function route() { let h = (location.hash || (location.pathname.replace(/\/+$/, '') == '/admin' ? '#admin' : '#home')).slice(1); if (h == '/admin') h = 'admin'; if (!$('#' + h)) h = 'home'; $$('section.v').forEach(s => s.classList.toggle('on', s.id == h)); $$('#nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') == '#' + h)); scrollTo(0, 0) }
 addEventListener('hashchange', route);
 route(); home(); shop(); upCart(); loadProducts(); paypalReturn();
 try { if (sessionStorage.getItem('dag_admin')) { API.admin.data().then(() => adminShow()).catch(() => adminOut()) } } catch (e) { }
